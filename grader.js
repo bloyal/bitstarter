@@ -25,6 +25,7 @@ var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
 var rest = require('restler');
+//var sys = require('util');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 
@@ -41,8 +42,13 @@ var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
 
-var cheerioHtmlURI = function(URI) {
-    return rest.get(URI).on('complete',function(result){ cheerio.load(result)  } ;
+//var cheerioHtmlURL = function(URL) {
+//    return rest.get(URL).on( 'complete',function(result){ cheerio.load(result); } ) ;
+//    rest.get(URL).on('complete',function(result){
+//	sys.puts(result);
+//    });
+//    return cheerio.load(temp);
+//};
 
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
@@ -54,10 +60,45 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     var out = {};
     for(var ii in checks) {
         var present = $(checks[ii]).length > 0;
-        out[checks[ii]] = present;
+  //      sys.puts(present);
+	out[checks[ii]] = present;
     }
-    return out;
+ //   sys.puts(out);
+   return out;
 };
+
+var checkHtmlURL = function(url, checksfile){
+    rest.get(url).on('complete',function(result){
+//	sys.puts(result);
+	$ = cheerio.load(result);
+//	sys.puts($);
+	var checks = loadChecks(checksfile).sort();
+//	sys.puts(checks);
+	var out ={};
+	for(var ii in checks){
+//	    sys.puts(ii);
+//	    sys.puts($(checks[ii]));
+	    var present = $(checks[ii]).length > 0;
+//	    sys.puts(present);
+	    out[checks[ii]] = present;
+	    
+	}
+//	sys.puts("This is the out variable");
+//	sys.puts(out);
+	var outJson = JSON.stringify(out,null,4);
+	console.log(outJson);
+	//return out;
+    });
+};
+//    $ = cheerioHtmlURL(url);
+//    var checks = loadChecks(checksfile).sort();
+//    var out = {};
+//    for(var ii in checks) {
+//	var present = $(checks[ii]).length > 0;
+//	out[checks[ii]] = present;
+//    }
+//    return out;
+//};
 
 var clone = function(fn) {
     // Workaround for commander.js issue.
@@ -71,9 +112,17 @@ if(require.main == module) {
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
 	.option('-u, --url <url>','Path to URL')
 	.parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if(program.url) {
+//	sys.puts("There's a url!!");
+	var checkJson = checkHtmlURL(program.url, program.checks);
+    }   else {
+//	sys.puts("No url here!!");
+	var checkJson = checkHtmlFile(program.file, program.checks);
+//	sys.puts("This is Json");
+//	sys.puts(checkJson);
+	var outJson = JSON.stringify(checkJson, null, 4);
+	console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
